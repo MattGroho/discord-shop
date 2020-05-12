@@ -64,6 +64,9 @@ class UserQueries(commands.Cog):
                                        "Here you can run commands to modify your shop.\n\n"
                                        "Type *help to get started!```")
 
+            await control_channel.send("```Please note additional help on commands can be found on our documentation page:\n\n"
+                                       "https://docs.google.com/document/d/1CW68wzUiIkLB4gMXKQdhTLo8BhZQDTICi4i5kqe1iKA/edit?usp=sharing```")
+
             shop_name = user.name + 's shop'
             shop_desc = ""
             shop_channel = await shop_category.create_text_channel(shop_name, overwrites=shop_overwrites)
