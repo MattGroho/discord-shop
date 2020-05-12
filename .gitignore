@@ -1,0 +1,5 @@
+env/
+venv/
+.ipynb_checkpoints/
+.idea/
+configuration.conf
