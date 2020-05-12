@@ -189,6 +189,8 @@ def delete_user_shop(user_id, cursor, cnx):
         shop_id = get_user_shop(user_id, cursor)
         cursor.execute('delete from shop where shop_id = %s', (shop_id,))  # execute deletion query
         cnx.commit()  # commit changes to database
+
+        delete_all_shop_items(shop_id, cursor, cnx)     # Delete all items that belonged to shop
     except ShopNotFoundError:
         raise ShopNotFoundError
 
@@ -221,6 +223,18 @@ def add_shop_item(item_id, shop_id, item_name, item_desc, item_price, item_qty, 
     cursor.execute('insert into item '
                    'values (%s, %s, %s, %s, %s, %s, %s, %s, %s)',
                    (item_id, shop_id, item_name, item_desc, item_price, item_qty, item_type, item_image, 1))
+    cnx.commit()  # commit changes to database
+
+
+def delete_all_shop_items(shop_id, cursor, cnx):
+    """
+    Deletes all items from a shop
+    :param shop_id: id of the shop to delete items from
+    :param cursor: cursor object for executing adding query
+    :param cnx: connection object for committing changes
+    :return: void
+    """
+    cursor.execute('delete from item where shop_id = %s', (shop_id,))  # execute deletion query
     cnx.commit()  # commit changes to database
 
 

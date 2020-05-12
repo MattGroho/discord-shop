@@ -60,12 +60,13 @@ class UserQueries(commands.Cog):
             control_channel = await control_category.create_text_channel(user.name + 's control panel',
                                                                          overwrites=control_overwrites)
 
+            await control_channel.send("```Welcome to your shop control panel!\n\n"
+                                       "Here you can run commands to modify your shop.\n\n"
+                                       "Type *help to get started!```")
+
             shop_name = user.name + 's shop'
             shop_desc = ""
             shop_channel = await shop_category.create_text_channel(shop_name, overwrites=shop_overwrites)
-            shop_channel.send("```Welcome to your shop control panel!\n\n"
-                              "Here you can run commands to modify your shop.\n\n"
-                              "Type *help to get started!```")
 
             create_user_control_panel(user_id, control_channel.id, self.cursor, self.cnx)
             create_user_shop(user_id, shop_channel.id, shop_name, shop_desc, 0, self.cursor, self.cnx)

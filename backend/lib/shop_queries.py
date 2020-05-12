@@ -63,7 +63,7 @@ class ShopQueries(commands.Cog):
         :param item_price: price of the item (0.00)
         :param item_qty: available quantity for the item (negative value for INF)
         :param item_type: type of the item (digital / service)
-        :param item_image: image url of the item (less than 64 characters)
+        :param item_image: image url of the item (less than 128 characters)
         :param item_desc: description of the item (less than 256 characters)
         """
         user = ctx.author
@@ -107,8 +107,8 @@ class ShopQueries(commands.Cog):
             await ctx.send("Error: The item description must be less than 512 characters long!")
             return
 
-        if len(item_image) >= 64:
-            await ctx.send("Error: The item image must be less than 64 characters long!")
+        if len(item_image) >= 128:
+            await ctx.send("Error: The item image must be less than 128 characters long!")
             return
 
         if item_image.lower() == 'none':
@@ -117,7 +117,7 @@ class ShopQueries(commands.Cog):
         shop_id = get_user_shop(user.id, self.cursor)
         shop_channel = self.bot.get_channel(shop_id)
 
-        embed = create_item_embed(item_name, item_desc, item_price, item_qty, item_type, item_image)   # Create item embed
+        embed = create_item_embed(user, item_name, item_desc, item_price, item_qty, item_type, item_image)
         msg = await shop_channel.send(embed=embed)
         add_shop_item(msg.id, shop_id, item_name, item_desc, item_price , item_qty, item_type, item_image, self.cursor, self.cnx)
 
@@ -176,7 +176,7 @@ class ShopQueries(commands.Cog):
             item_msg = await shop_channel.fetch_message(item_id)
 
             item_results = get_shop_item(item_id, shop_id, self.cursor)
-            embed = create_item_embed(item_name, item_results[3], item_results[4],
+            embed = create_item_embed(user, item_name, item_results[3], item_results[4],
                                       item_results[5], item_results[6], item_results[7])
 
             set_shop_item_name(item_id, shop_id, item_name, self.cursor, self.cnx)
@@ -216,7 +216,7 @@ class ShopQueries(commands.Cog):
 
         try:
             item_results = get_shop_item(item_id, shop_id, self.cursor)
-            embed = create_item_embed(item_results[2], item_desc, item_results[4],
+            embed = create_item_embed(user, item_results[2], item_desc, item_results[4],
                                       item_results[5], item_results[6], item_results[7])
 
             set_shop_item_desc(item_id, shop_id, item_desc, self.cursor, self.cnx)
@@ -255,7 +255,7 @@ class ShopQueries(commands.Cog):
 
         try:
             item_results = get_shop_item(item_id, shop_id, self.cursor)
-            embed = create_item_embed(item_results[2], item_results[3], item_price,
+            embed = create_item_embed(user, item_results[2], item_results[3], item_price,
                                       item_results[5], item_results[6], item_results[7])
 
             set_shop_item_price(item_id, shop_id, item_price, self.cursor, self.cnx)
@@ -296,7 +296,7 @@ class ShopQueries(commands.Cog):
 
         try:
             item_results = get_shop_item(item_id, shop_id, self.cursor)
-            embed = create_item_embed(item_results[2], item_results[3], item_results[4],
+            embed = create_item_embed(user, item_results[2], item_results[3], item_results[4],
                                       item_qty, item_results[6], item_results[7])
 
             set_shop_item_qty(item_id, shop_id, item_qty, self.cursor, self.cnx)
@@ -337,7 +337,7 @@ class ShopQueries(commands.Cog):
 
         try:
             item_results = get_shop_item(item_id, shop_id, self.cursor)
-            embed = create_item_embed(item_results[2], item_results[3], item_results[4],
+            embed = create_item_embed(user, item_results[2], item_results[3], item_results[4],
                                       item_results[5], item_type, item_results[7])
 
             set_shop_item_type(item_id, shop_id, item_type, self.cursor, self.cnx)
@@ -363,8 +363,8 @@ class ShopQueries(commands.Cog):
         except CommandNotControlPanelError:
             return  # do nothing in current channel
 
-        if len(item_image) >= 64:
-            await ctx.send("Error: The item image must be less than 64 characters long!")
+        if len(item_image) >= 128:
+            await ctx.send("Error: The item image must be less than 128 characters long!")
             return
 
         if item_image.lower() == 'none':
@@ -377,7 +377,7 @@ class ShopQueries(commands.Cog):
 
         try:
             item_results = get_shop_item(item_id, shop_id, self.cursor)
-            embed = create_item_embed(item_results[2], item_results[3], item_results[4],
+            embed = create_item_embed(user, item_results[2], item_results[3], item_results[4],
                                       item_results[5], item_results[6], item_image)
 
             set_shop_item_image(item_id, shop_id, item_image, self.cursor, self.cnx)
@@ -390,9 +390,10 @@ class ShopQueries(commands.Cog):
         await ctx.send("Successfully updated the item image for " + item_results[2] + " to " + item_image + "!")
 
 
-def create_item_embed(item_name, item_desc, item_price, item_qty, item_type, item_image):
+def create_item_embed(user, item_name, item_desc, item_price, item_qty, item_type, item_image):
     """
     Creates a formatted embed message of an item
+    :param display_name: user creating the item
     :param item_name: name of the item
     :param item_price: price of the item
     :param item_qty: available quantity of the item
@@ -411,6 +412,7 @@ def create_item_embed(item_name, item_desc, item_price, item_qty, item_type, ite
                                 "Qty Avl: " + formatted_qty + "\n" +
                                 "__                                                          __\n",
                           description="`" + item_desc + "`", color=0x68ff7a)
+    embed.set_author(name=str(user), icon_url=user.avatar)
     if item_image != "none":
         embed.set_image(url=item_image)
     embed.add_field(name="__Purchase Info__", value="Contact me via Discord for further information on the item listed.", inline=True)
