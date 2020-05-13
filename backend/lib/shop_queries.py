@@ -4,7 +4,7 @@ from discord.utils import get
 from backend.lib.helper_commands import check_admin_status, AdminPermissionError, check_user_exists, in_control_panel, \
     CommandNotControlPanelError, get_user_shop, get_shop_status, set_shop_status, add_shop_item, ItemNotFoundError, \
     get_shop_item, set_shop_item_name, set_shop_item_desc, set_shop_item_price, set_shop_item_qty, set_shop_item_type, \
-    set_shop_item_image, delete_shop_item
+    set_shop_item_image, delete_shop_item, get_shop_sign, get_shop, set_shop_sign
 
 
 class ShopQueries(commands.Cog):
@@ -44,7 +44,7 @@ class ShopQueries(commands.Cog):
             return
 
         guild = ctx.guild
-        shop_channel = self.bot.get_channel(shop_id)    # TODO Update message inside shop to reflect status
+        shop_channel = self.bot.get_channel(shop_id)
 
         if status == 1:    # if the user is opening their shop
             await shop_channel.set_permissions(guild.default_role, read_messages=True)
@@ -54,6 +54,20 @@ class ShopQueries(commands.Cog):
             await ctx.send("You have successfully closed down shop!")
 
         set_shop_status(shop_id, status, self.cursor, self.cnx)
+
+        # Begin Shop Sign Update
+
+        shop_results = get_shop(shop_id, self.cursor)
+
+        new_sign = await shop_channel.send(
+            create_shop_sign(self.bot.get_user(int(shop_results[1])), shop_results, self.cursor))
+
+        old_msg = await shop_channel.fetch_message(get_shop_sign(shop_id, self.cursor))
+
+        set_shop_sign(shop_id, new_sign.id, self.cursor, self.cnx)
+        await old_msg.delete()
+
+        # End Shop Sign Update
 
     @commands.command()
     async def add_item(self, ctx, item_name, item_price, item_qty, item_type, item_image, item_desc):
@@ -393,7 +407,7 @@ class ShopQueries(commands.Cog):
 def create_item_embed(user, item_name, item_desc, item_price, item_qty, item_type, item_image):
     """
     Creates a formatted embed message of an item
-    :param display_name: user creating the item
+    :param user: user creating the item
     :param item_name: name of the item
     :param item_price: price of the item
     :param item_qty: available quantity of the item
@@ -412,13 +426,29 @@ def create_item_embed(user, item_name, item_desc, item_price, item_qty, item_typ
                                 "Qty Avl: " + formatted_qty + "\n" +
                                 "__                                                          __\n",
                           description="`" + item_desc + "`", color=0x68ff7a)
-    embed.set_author(name=str(user), icon_url=user.avatar)
+    embed.set_author(name=str(user), icon_url=user.avatar_url, url="https://discordapp.com/users/" + str(user.id))
     if item_image != "none":
         embed.set_image(url=item_image)
-    embed.add_field(name="__Purchase Info__", value="Contact me via Discord for further information on the item listed.", inline=True)
+    embed.add_field(name="__Purchase Info__", value="Contact the shop owner via Discord for further information on the item listed.", inline=True)
     embed.add_field(name="__Middleman Info__", value="A trusted middleman can be used for extra buyers protection.", inline=True)
 
     return embed
+
+
+def create_shop_sign(shop_owner, shop_results, cursor):
+    #shop_results = get_shop_item(shop_id, cursor)
+
+    formatted_desc = "Shop description not yet set." if shop_results[3] == "" else shop_results[3]
+    formatted_status = "open" if int(shop_results[4]) == 1 else "closed"
+
+    shop_sign_text = "__                                                                           __\n" \
+                     "Welcome to " + shop_results[2] + "\n\n" \
+                     "**This shop is currently " + formatted_status + "!**\n\n" \
+                     "This shop is owned by: " + str(shop_owner) + "\n" \
+                     "Seller Reputation: **COMING SOON**\n\n" \
+                     "" + formatted_desc + "\n" \
+                     "__                                                                           __"
+    return shop_sign_text
 
 
 # SQL FUNCTIONS #

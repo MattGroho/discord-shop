@@ -4,6 +4,7 @@ from discord.utils import get
 from backend.lib.helper_commands import check_admin_status, AdminPermissionError, check_user_exists, \
     create_user_control_panel, create_user_shop, get_user_control_panel, ControlPanelNotFoundError, ShopNotFoundError, \
     get_user_shop, delete_user_shop, delete_user_control_panel, get_name_from_id
+from backend.lib.shop_queries import create_shop_sign
 
 
 class UserQueries(commands.Cog):
@@ -22,6 +23,12 @@ class UserQueries(commands.Cog):
         :param status: status of their affiliation (true / false)
         :return: void
         """
+
+        try:
+            check_admin_status(ctx.author.id, False, self.cursor)
+        except AdminPermissionError:
+            await ctx.send("Error: You must be an admin to perform this command!")
+
         status = status.lower()
 
         if not (status == 'true' or status == 'false'):  # check for valid response
@@ -71,8 +78,11 @@ class UserQueries(commands.Cog):
             shop_desc = ""
             shop_channel = await shop_category.create_text_channel(shop_name, overwrites=shop_overwrites)
 
+            shop_results = [shop_channel.id, user.id, shop_desc, 0, -1]
+            shop_msg = await shop_channel.send(create_shop_sign(user, shop_results, self.cursor))
+
             create_user_control_panel(user_id, control_channel.id, self.cursor, self.cnx)
-            create_user_shop(user_id, shop_channel.id, shop_name, shop_desc, 0, self.cursor, self.cnx)
+            create_user_shop(user_id, shop_channel.id, shop_name, shop_desc, 0, shop_msg.id, self.cursor, self.cnx)
 
             await user.add_roles(affiliate_role)
             await ctx.send("Successfully updated " + user.name + "'s affiliate status to true!")

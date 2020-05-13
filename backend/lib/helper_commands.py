@@ -85,6 +85,16 @@ def get_user_shop(user_id, cursor):
     return result[0][0]
 
 
+def get_shop(shop_id, cursor):
+    cursor.execute('select * from shop where shop_id = %s', (shop_id,))
+    result = cursor.fetchall()
+
+    if len(result) == 0:  # shop not found
+        raise ShopNotFoundError
+
+    return result[0]
+
+
 def get_shop_status(shop_id, cursor):
     """
     Gets the status of the shop being open
@@ -116,6 +126,37 @@ def set_shop_status(shop_id, status, cursor, cnx):
     cnx.commit() # commit changes to shop table
 
 
+def get_shop_sign(shop_id, cursor):
+    """
+    Gets the sign id of the shop
+    :param shop_id: the id of the shop we want to check the open status for
+    :param cursor: cursor object for executing search query
+    :return: Raise ShopNotFoundError if the shop doesn't exit, sign id if successful
+    """
+    cursor.execute('select sign_id from shop where shop_id = %s', (shop_id,))
+    result = cursor.fetchall()
+
+    if len(result) == 0:  # user not in shop
+        raise ShopNotFoundError
+
+    return int(result[0][0])
+
+
+def set_shop_sign(shop_id, sign_id, cursor, cnx):
+    """
+    Update the sign id of a shop
+    :param shop_id: the id of the shop we want to change the status of
+    :param sign_id: the sign id we want to set for the shop
+    :param cursor: cursor object for executing update
+    :param cnx: connection object for committing changes
+    :return: void
+    """
+    cursor.execute('update shop '
+                   'set sign_id = %s '
+                   'where shop_id = %s', (sign_id, shop_id))
+    cnx.commit() # commit changes to shop table
+
+
 def create_user_control_panel(user_id, control_channel_id, cursor, cnx):
     """
     Creates a control panel for a user
@@ -137,7 +178,7 @@ def create_user_control_panel(user_id, control_channel_id, cursor, cnx):
     raise ExistingControlPanelError
 
 
-def create_user_shop(user_id, shop_channel_id, name, desc, status, cursor, cnx):
+def create_user_shop(user_id, shop_channel_id, name, desc, status, shop_sign_id, cursor, cnx):
     """
     Creates a shop for a user
     :param user_id: user id to create shop for
@@ -145,6 +186,7 @@ def create_user_shop(user_id, shop_channel_id, name, desc, status, cursor, cnx):
     :param name: name of shop
     :param desc: desc of shop
     :param status: default status of shop
+    :param shop_sign_id: id of the shop's sign
     :param cursor: cursor object for executing insert query
     :param cnx: connection object for committing changes
     :return:raise ExistingControlPanel if a control panel already exists, void if successful
@@ -153,8 +195,8 @@ def create_user_shop(user_id, shop_channel_id, name, desc, status, cursor, cnx):
         get_user_shop(user_id, cursor)
     except ShopNotFoundError:
         cursor.execute('insert into shop '
-                       'values (%s, %s, %s, %s, %s)',
-                       (shop_channel_id, user_id, name, desc, status))
+                       'values (%s, %s, %s, %s, %s, %s)',
+                       (shop_channel_id, user_id, name, desc, status, shop_sign_id))
         cnx.commit()  # commit changes to database
         return
 
@@ -222,7 +264,7 @@ def add_shop_item(item_id, shop_id, item_name, item_desc, item_price, item_qty, 
     """
     cursor.execute('insert into item '
                    'values (%s, %s, %s, %s, %s, %s, %s, %s, %s)',
-                   (item_id, shop_id, item_name, item_desc, item_price, item_qty, item_type, item_image, 1))
+                   (item_id, shop_id, item_name, item_desc, item_price, item_qty, item_type, item_image))
     cnx.commit()  # commit changes to database
 
 
